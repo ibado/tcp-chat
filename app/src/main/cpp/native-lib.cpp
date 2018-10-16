@@ -7,6 +7,9 @@
 #include <iostream>
 #include <fstream>
 
+
+#include <android/log.h>
+
 struct sockaddr_in serv; //This is our main socket variable.
 int fd; //This is the socket file descriptor that will be used to identify the socket
 
@@ -35,13 +38,13 @@ JNIEXPORT void JNICALL
 Java_com_bado_ignacio_tcpchat_MainActivity_sendMessage(JNIEnv *env, jobject instance,
                                                              jstring message_) {
 
-    const char *message = env->GetStringUTFChars(message_, 0);
+    const char* message = env->GetStringUTFChars(message_, 0);
 
-    const char *empty_message = "                                ";
+    size_t length = strlen(message);
 
-    send(fd, empty_message, strlen(message), 0);
+    send(fd, message, length, 0);
 
-    send(fd, message, strlen(message), 0);
+    __android_log_print(ANDROID_LOG_DEBUG, "ibado", "size: %zu", length);
 
     env->ReleaseStringUTFChars(message_, message);
 }
