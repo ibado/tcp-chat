@@ -1,11 +1,12 @@
 package com.bado.ignacio.tcpchat;
 
 import android.os.Handler;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Button;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
@@ -15,15 +16,18 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
+    private RecyclerView mChatList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
         final EditText editText = findViewById(R.id.sample_text);
-        Button btnSubmit = findViewById(R.id.btn_submit);
-        boolean status = initServer();
+        FloatingActionButton btnSubmit = findViewById(R.id.btn_submit);
+        mChatList = findViewById(R.id.rv_main);
+
+        boolean status = initClient(8096);
         if (!status)
             Toast.makeText(getApplicationContext(), "CONNECTION ERROR", Toast.LENGTH_LONG).show();
         final Handler handler = new Handler();
@@ -41,7 +45,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public native boolean initServer();
+    public void executeMe(String message) {
+        Toast.makeText(this, "msg: ".concat(message), Toast.LENGTH_SHORT).show();
+    }
+
+    public native boolean initClient(int port);
 
     public native void sendMessage(String message);
 }
