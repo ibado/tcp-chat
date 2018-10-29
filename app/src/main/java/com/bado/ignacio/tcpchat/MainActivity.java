@@ -2,6 +2,7 @@ package com.bado.ignacio.tcpchat;
 
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -24,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mChatList;
     private LinearLayoutManager mChatListLayoutManager;
     private ChatMessageAdapter mChatListAdapter;
+    private Thread mMessageListener;
+    private List<ChatMessage> mChatMessages;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,12 +46,29 @@ public class MainActivity extends AppCompatActivity {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        sendMessage(editText.getText().toString());
+                        String message = editText.getText().toString();
+                        sendMessage(message);
+                        mChatMessages.add(new ChatMessage(message, true));
                         editText.setText("");
                     }
                 });
             }
         });
+
+        mMessageListener = new MessageListener(new ShowStrategy() {
+            @Override
+            public void showMessage(String message) {
+                mChatMessages.add(new ChatMessage(message, false));
+                mChatListAdapter.notifyItemInserted(mChatListAdapter.getItemCount());
+            }
+        });
+        mMessageListener.start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mMessageListener.interrupt();
     }
 
     private void initRecycler() {
@@ -56,21 +76,48 @@ public class MainActivity extends AppCompatActivity {
 
         mChatListLayoutManager = new LinearLayoutManager(this);
 
-        List<ChatMessage> list = new ArrayList<>();
+        mChatMessages = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            list.add(new ChatMessage("hola que hace item " + i, i % 2 == 0));
+            mChatMessages.add(new ChatMessage("hola que hace item " + i, i % 2 == 0));
         }
-        mChatListAdapter = new ChatMessageAdapter(list);
+        mChatListAdapter = new ChatMessageAdapter(mChatMessages);
 
         mChatList.setLayoutManager(mChatListLayoutManager);
         mChatList.setAdapter(mChatListAdapter);
     }
 
-    public void executeMe(String message) {
-        Toast.makeText(this, "msg: ".concat(message), Toast.LENGTH_SHORT).show();
+    private class MessageListener extends Thread {
+
+        Handler mHadler;
+        private ShowStrategy mStrategy;
+
+        MessageListener(ShowStrategy showStrategy) {
+            mHadler = new Handler(Looper.getMainLooper());
+            mStrategy = showStrategy;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+
+                final String message = getMessage();
+                mHadler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mStrategy.showMessage(message);
+                    }
+                });
+            }
+        }
+    }
+
+    interface ShowStrategy  {
+        void showMessage(String message);
     }
 
     public native boolean initClient(int port);
 
     public native void sendMessage(String message);
+
+    public native String getMessage();
 }
